@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment (contains your session cookie!)
+.env
+
+# Database
+data/
+
+# TypeScript build output
+dist/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

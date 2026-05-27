@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { fetchLogs } from './api';
 import { getLastSavedId, saveEntries, initDb, LogEntry } from './db';
+import { LogsResponse } from './types/logs';
 
 const randomDelay = (minMin: number, maxMin: number): Promise<void> => {
   const ms = (Math.random() * (maxMin - minMin) + minMin) * 60_000;
@@ -9,12 +10,12 @@ const randomDelay = (minMin: number, maxMin: number): Promise<void> => {
 };
 
 async function syncLogs() {
-  const { entries } = await fetchLogs();
+  const respons:LogsResponse = await fetchLogs();
   const lastId = await getLastSavedId();
 
   // Відфільтровуємо тільки нові — до першого вже збереженого
   const newEntries: LogEntry[] = [];
-  for (const entry of entries) {
+  for (const entry of respons.entries) {
     if (entry._id === lastId) break;
     newEntries.push(entry);
   }

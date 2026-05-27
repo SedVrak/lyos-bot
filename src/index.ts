@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { fetchLogs } from './api';
-import { getLastSavedId, saveEntries, LogEntry } from './db';
+import { getLastSavedId, saveEntries, initDb, LogEntry } from './db';
 
 const randomDelay = (minMin: number, maxMin: number): Promise<void> => {
   const ms = (Math.random() * (maxMin - minMin) + minMin) * 60_000;
@@ -10,7 +10,7 @@ const randomDelay = (minMin: number, maxMin: number): Promise<void> => {
 
 async function syncLogs() {
   const { entries } = await fetchLogs();
-  const lastId = getLastSavedId();
+  const lastId = await getLastSavedId();
 
   // Відфільтровуємо тільки нові — до першого вже збереженого
   const newEntries: LogEntry[] = [];
@@ -24,12 +24,15 @@ async function syncLogs() {
     return;
   }
 
-  const saved = saveEntries(newEntries);
+  const saved = await saveEntries(newEntries);
   console.log(`Saved ${saved} new log entries`);
 }
 
 async function main() {
   console.log('Starting lyos-bot...');
+  await initDb();
+  console.log('DB initialized');
+
   while (true) {
     try {
       await syncLogs();

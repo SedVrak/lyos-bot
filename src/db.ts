@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { DepositResponce } from './types/bank';
 import { LogEntry } from './types/logs';
+import { ScanTarget } from './types/scan';
 
 const pool = new Pool({
   host: process.env.PG_HOST ?? 'postgres',
@@ -30,6 +31,31 @@ export async function initDb(): Promise<void> {
       deposited INTEGER,
       fee INTEGER,
       deposited_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scan_targets (
+      id TEXT PRIMARY KEY,
+
+      -- first scan
+      login_first TEXT,
+      ip_first TEXT,
+      rep_first INTEGER,
+      firewall_first INTEGER,
+      first_seen_at TIMESTAMPTZ DEFAULT NOW(),
+
+      -- last scan
+      login_last TEXT,
+      ip_last TEXT,
+      rep_last INTEGER,
+      firewall_last INTEGER,
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+      -- money
+      money_last INTEGER,
+      money_avg NUMERIC(12, 2),
+      scan_count INTEGER DEFAULT 1
     )
   `);
 }
@@ -65,3 +91,23 @@ export async function saveDeposit(result: DepositResponce): Promise<void> {
   );
 }
 
+export async function upsertScanTarget(t: ScanTarget): Promise<void> {
+  await pool.query(`
+    INSERT INTO scan_targets (
+      id,
+      login_first, ip_first, rep_first, firewall_first,
+      login_last,  ip_last,  rep_last,  firewall_last,
+      money_last, money_avg, scan_count
+    ) VALUES ($1, $2, $3, $4, $5, $2, $3, $4, $5, $6, $6, 1)
+    ON CONFLICT (id) DO UPDATE SET
+      login_last    = EXCLUDED.login_last,
+      ip_last       = EXCLUDED.ip_last,
+      rep_last      = EXCLUDED.rep_last,
+      firewall_last = EXCLUDED.firewall_last,
+      money_last    = EXCLUDED.money_last,
+      money_avg     = (scan_targets.money_avg * scan_targets.scan_count + EXCLUDED.money_last)
+                      / (scan_targets.scan_count + 1),
+      scan_count    = scan_targets.scan_count + 1,
+      updated_at    = NOW()
+  `, [t._id, t.login, t.ip, t.rep, t.firewall, t.money]);
+}

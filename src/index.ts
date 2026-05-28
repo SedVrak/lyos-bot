@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { deposit, fetchLogs, fetchMe } from './api';
-import { getLastSavedId, saveEntries, initDb, saveDeposit } from './db';
+import { deposit, fetchLogs, fetchMe, fetchScan } from './api';
+import { getLastSavedId, saveEntries, initDb, saveDeposit, upsertScanTarget } from './db';
 import { LogEntry, LogsResponse } from './types/logs';
 import { logger } from './utils/logger';
 
@@ -58,6 +58,23 @@ async function autoDeposit(): Promise<void> {
   logger.info(`[autoDeposit] Deposited ${result.deposited}, fee: ${result.fee}`);
 }
 
+async function runScan(): Promise<void> {
+  logger.info('[runScan] Starting 100 scans...');
+  let saved = 0;
+
+  for (let i = 0; i < 100; i++) {
+    const { targets } = await fetchScan();
+    for (const target of targets) {
+      await upsertScanTarget(target);
+      saved++;
+    }
+    // невелика пауза щоб не флудити сервер
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  logger.info(`[runScan] Done. Processed ${saved} target entries`);
+}
+
 async function main() {
   logger.info('Starting lyos-bot...');
   await initDb();
@@ -65,6 +82,7 @@ async function main() {
 
   scheduleTask('syncLogs', 2_000, syncLogs);
   scheduleTask('autoDeposit', 30 * 60_000, autoDeposit);
+  scheduleTask('runScan',     6 * 60 * 60_000, runScan);
 }
 
 main();

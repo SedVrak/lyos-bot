@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { fetchLogs } from './api';
 import { getLastSavedId, saveEntries, initDb, LogEntry } from './db';
 import { LogsResponse } from './types/logs';
+import { logger } from './utils/logger';
 
 //Scheduler
 type Task = () => Promise<void>;
@@ -31,18 +32,17 @@ async function syncLogs(): Promise<void> {
   }
 
   if (newEntries.length === 0) {
-    console.log('[syncLogs] No new entries');
     return;
   }
 
   const saved = await saveEntries(newEntries);
-  console.log(`[syncLogs] Saved ${saved} new entries`);
+  logger.info(`[syncLogs] Saved ${saved} new entries`);
 }
 
 async function main() {
-  console.log('Starting lyos-bot...');
+  logger.info('Starting lyos-bot...');
   await initDb();
-  console.log('DB initialized');
+  logger.info('DB initialized');
 
   scheduleTask('syncLogs', 2_000, syncLogs);
 }

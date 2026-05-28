@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { logger } from './logger';
 
 const BASE_URL = process.env.BASE_URL!;
 const COOKIE = process.env.SESSION_COOKIE!;
@@ -27,6 +28,7 @@ export async function apiFetch<T>(url: string, body?: any, method:HttpMethod = '
   const response = await fetch(`${BASE_URL}/${url}`, config);
 
   if (!response.ok) {
+    logger.error(`HTTP error! Status: ${response.status}`);
     throw new Error(`HTTP error! Status: ${response.status}`);
   }
 

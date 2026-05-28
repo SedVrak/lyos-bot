@@ -103,14 +103,14 @@ export async function upsertScanTarget(t: ScanTarget): Promise<void> {
       login_last,  ip_last,  rep_last,  firewall_last,
       money_last, money_avg, scan_count,
       is_bot
-    ) VALUES ($1, $2, $3, $4, $5, $2, $3, $4, $5, $6, $6, 1, $7)
+    ) VALUES ($1, $2, $3, $4, $5, $2, $3, $4, $5, $6::integer, $6::numeric, 1, $7)
     ON CONFLICT (id) DO UPDATE SET
       login_last    = EXCLUDED.login_last,
       ip_last       = EXCLUDED.ip_last,
       rep_last      = EXCLUDED.rep_last,
       firewall_last = EXCLUDED.firewall_last,
       money_last    = EXCLUDED.money_last,
-      money_avg     = (scan_targets.money_avg * scan_targets.scan_count + EXCLUDED.money_last)
+      money_avg     = (scan_targets.money_avg * scan_targets.scan_count + EXCLUDED.money_last::numeric)
                       / (scan_targets.scan_count + 1),
       scan_count    = scan_targets.scan_count + 1,
       updated_at    = NOW()

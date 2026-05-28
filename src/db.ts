@@ -55,7 +55,9 @@ export async function initDb(): Promise<void> {
       -- money
       money_last INTEGER,
       money_avg NUMERIC(12, 2),
-      scan_count INTEGER DEFAULT 1
+      scan_count INTEGER DEFAULT 1,
+
+      is_bot BOOLEAN DEFAULT FALSE
     )
   `);
 }
@@ -92,13 +94,16 @@ export async function saveDeposit(result: DepositResponce): Promise<void> {
 }
 
 export async function upsertScanTarget(t: ScanTarget): Promise<void> {
+  const isBot = t.bot_last_payout_at !== undefined;
+
   await pool.query(`
     INSERT INTO scan_targets (
       id,
       login_first, ip_first, rep_first, firewall_first,
       login_last,  ip_last,  rep_last,  firewall_last,
-      money_last, money_avg, scan_count
-    ) VALUES ($1, $2, $3, $4, $5, $2, $3, $4, $5, $6, $6, 1)
+      money_last, money_avg, scan_count,
+      is_bot
+    ) VALUES ($1, $2, $3, $4, $5, $2, $3, $4, $5, $6, $6, 1, $7)
     ON CONFLICT (id) DO UPDATE SET
       login_last    = EXCLUDED.login_last,
       ip_last       = EXCLUDED.ip_last,
@@ -109,5 +114,5 @@ export async function upsertScanTarget(t: ScanTarget): Promise<void> {
                       / (scan_targets.scan_count + 1),
       scan_count    = scan_targets.scan_count + 1,
       updated_at    = NOW()
-  `, [t._id, t.login, t.ip, t.rep, t.firewall, t.money]);
+  `, [t._id, t.login, t.ip, t.rep, t.firewall, t.money, isBot]);
 }

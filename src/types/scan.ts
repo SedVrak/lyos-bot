@@ -5,6 +5,7 @@ export interface ScanTarget {
   rep: number;
   firewall: number;
   money: number;
+  bot_last_payout_at?: number;
 }
 
 export interface ScanResponse {

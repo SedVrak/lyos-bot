@@ -3,30 +3,40 @@ import { fetchLogs } from './api';
 import { getLastSavedId, saveEntries, initDb, LogEntry } from './db';
 import { LogsResponse } from './types/logs';
 
-const randomDelay = (minMin: number, maxMin: number): Promise<void> => {
-  const ms = (Math.random() * (maxMin - minMin) + minMin) * 60_000;
-  console.log(`Sleeping ${(ms / 60000).toFixed(1)} min...`);
-  return new Promise(r => setTimeout(r, ms));
-};
+//Scheduler
+type Task = () => Promise<void>;
 
-async function syncLogs() {
-  const respons:LogsResponse = await fetchLogs();
+function scheduleTask(name: string, intervalMs: number, task: Task): void {
+  const run = async () => {
+    try {
+      await task();
+    } catch (err) {
+      console.error(`[${name}] Error:`, err);
+    } finally {
+      setTimeout(run, intervalMs);
+    }
+  };
+  run();
+}
+
+//Tasks
+async function syncLogs(): Promise<void> {
+  const response: LogsResponse = await fetchLogs();
   const lastId = await getLastSavedId();
 
-  // Відфільтровуємо тільки нові — до першого вже збереженого
   const newEntries: LogEntry[] = [];
-  for (const entry of respons.entries) {
+  for (const entry of response.entries) {
     if (entry._id === lastId) break;
     newEntries.push(entry);
   }
 
   if (newEntries.length === 0) {
-    console.log('No new entries');
+    console.log('[syncLogs] No new entries');
     return;
   }
 
   const saved = await saveEntries(newEntries);
-  console.log(`Saved ${saved} new log entries`);
+  console.log(`[syncLogs] Saved ${saved} new entries`);
 }
 
 async function main() {
@@ -34,14 +44,7 @@ async function main() {
   await initDb();
   console.log('DB initialized');
 
-  while (true) {
-    try {
-      await syncLogs();
-    } catch (err) {
-      console.error('Error:', err);
-    }
-    await randomDelay(4, 10); // кожні 4-10 хвилин
-  }
+  scheduleTask('syncLogs', 2_000, syncLogs);
 }
 
 main();

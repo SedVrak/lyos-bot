@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { deposit, fetchLogs, fetchMe, fetchScan } from './api';
+import { deposit, fetchLogs, fetchMe, fetchScanWithRetry } from './api';
 import { getLastSavedId, saveEntries, initDb, saveDeposit, upsertScanTarget } from './db';
 import { LogEntry, LogsResponse } from './types/logs';
 import { logger } from './utils/logger';
@@ -62,14 +62,13 @@ async function runScan(): Promise<void> {
   logger.info('[runScan] Starting 100 scans...');
   let saved = 0;
 
-  for (let i = 0; i < 100; i++) {
-    const { targets } = await fetchScan();
+  for (let i = 0; i < 50; i++) {
+    const { targets } = await fetchScanWithRetry();
     for (const target of targets) {
       await upsertScanTarget(target);
       saved++;
     }
-    // невелика пауза щоб не флудити сервер
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 3_000)); 
   }
 
   logger.info(`[runScan] Done. Processed ${saved} target entries`);

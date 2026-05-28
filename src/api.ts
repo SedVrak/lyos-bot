@@ -14,5 +14,5 @@ export async function fetchMe(): Promise<RootUserObject> {
 }
 //set deposit
 export async function deposit(amount: number): Promise<DepositResponce> {
-  return await apiFetch(`api/bank/deposit`);
+  return await apiFetch(`api/bank/deposit`, { amount }, 'POST');
 }

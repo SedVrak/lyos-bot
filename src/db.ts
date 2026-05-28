@@ -1,4 +1,6 @@
 import { Pool } from 'pg';
+import { DepositResponce } from './types/bank';
+import { LogEntry } from './types/logs';
 
 const pool = new Pool({
   host: process.env.PG_HOST ?? 'postgres',
@@ -18,6 +20,16 @@ export async function initDb(): Promise<void> {
       action TEXT,
       integrity TEXT,
       saved_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deposit_log (
+      id SERIAL PRIMARY KEY,
+      success BOOLEAN,
+      deposited INTEGER,
+      fee INTEGER,
+      deposited_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
 }
@@ -45,11 +57,11 @@ export async function saveEntries(entries: LogEntry[]): Promise<number> {
   return count;
 }
 
-export interface LogEntry {
-  _id: string;
-  timestamp: string;
-  content: string;
-  type: string;
-  action: string;
-  integrity: string;
+export async function saveDeposit(result: DepositResponce): Promise<void> {
+  await pool.query(
+    `INSERT INTO deposit_log (success, deposited, fee)
+     VALUES ($1, $2, $3)`,
+    [result.success, result.deposited, result.fee]
+  );
 }
+

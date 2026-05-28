@@ -1,3 +1,6 @@
+export interface LogsResponse {
+  entries: LogEntry[];
+}
 export interface LogEntry {
   _id: string;
   timestamp: string;
@@ -5,9 +8,4 @@ export interface LogEntry {
   type: string;
   action: string;
   integrity: string;
-  _traceable?: boolean;
-}
-
-export interface LogsResponse {
-  entries: LogEntry[];
 }

@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { fetchLogs } from './api';
-import { getLastSavedId, saveEntries, initDb, LogEntry } from './db';
-import { LogsResponse } from './types/logs';
+import { deposit, fetchLogs, fetchMe } from './api';
+import { getLastSavedId, saveEntries, initDb, saveDeposit } from './db';
+import { LogEntry, LogsResponse } from './types/logs';
 import { logger } from './utils/logger';
 
 //Scheduler
@@ -39,12 +39,32 @@ async function syncLogs(): Promise<void> {
   logger.info(`[syncLogs] Saved ${saved} new entries`);
 }
 
+async function autoDeposit(): Promise<void> {
+  const { user } = await fetchMe();
+
+  if (user.money <= 0) {
+    return;
+  }
+
+  logger.info(`[autoDeposit] Depositing ${user.money}...`);
+  const result = await deposit(user.money);
+
+  if (!result.success) {
+    logger.warn('[autoDeposit] Deposit failed', result);
+    return;
+  }
+
+  await saveDeposit(result);
+  logger.info(`[autoDeposit] Deposited ${result.deposited}, fee: ${result.fee}`);
+}
+
 async function main() {
   logger.info('Starting lyos-bot...');
   await initDb();
   logger.info('DB initialized');
 
   scheduleTask('syncLogs', 2_000, syncLogs);
+  scheduleTask('autoDeposit', 30 * 60_000, autoDeposit);
 }
 
 main();

@@ -62,7 +62,7 @@ async function runScan(): Promise<void> {
   logger.info('[runScan] Starting 100 scans...');
   let saved = 0;
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 10; i++) {
     const { targets } = await fetchScanWithRetry();
     for (const target of targets) {
       await upsertScanTarget(target);

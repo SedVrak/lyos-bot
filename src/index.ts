@@ -85,7 +85,7 @@ async function main() {
 
   scheduleTask('syncLogs', 2_000, syncLogs);
   scheduleTask('autoDeposit', randomInterval(20, 40), autoDeposit);
-  scheduleTask('runScan', randomInterval(120, 360) * 60_000, runScan);
+  scheduleTask('runScan', randomInterval(120, 360), runScan);
 }
 
 main();

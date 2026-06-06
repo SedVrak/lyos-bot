@@ -7,6 +7,10 @@ import { logger } from './utils/logger';
 //Scheduler
 type Task = () => Promise<void>;
 
+const randomInterval = (minMinutes: number, maxMinutes: number): number => {
+  return (Math.random() * (maxMinutes - minMinutes) + minMinutes) * 60_000;
+};
+
 function scheduleTask(name: string, intervalMs: number, task: Task): void {
   const run = async () => {
     try {
@@ -80,8 +84,8 @@ async function main() {
   logger.info('DB initialized');
 
   scheduleTask('syncLogs', 2_000, syncLogs);
-  scheduleTask('autoDeposit', 30 * 60_000, autoDeposit);
-  scheduleTask('runScan',     6 * 60 * 60_000, runScan);
+  scheduleTask('autoDeposit', randomInterval(20, 40), autoDeposit);
+  scheduleTask('runScan', randomInterval(120, 360) * 60_000, runScan);
 }
 
 main();

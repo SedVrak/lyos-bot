@@ -29,7 +29,7 @@ export async function apiFetch<T>(url: string, body?: any, method:HttpMethod = '
 
   if (response.status === 401) {
     logger.error('Session expired (401). Shutting down...');
-    process.exit(1);
+    process.exit(0); // Clean exit
   }
 
   if (!response.ok) {

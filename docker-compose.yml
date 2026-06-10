@@ -5,6 +5,9 @@ services:
     env_file: .env
     networks:
       - shared_net
+    tty: true
+    volumes:
+      - ./logs:/app/logs
 
 networks:
   shared_net:

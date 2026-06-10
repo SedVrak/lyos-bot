@@ -63,7 +63,7 @@ async function autoDeposit(): Promise<void> {
 }
 
 async function runScan(): Promise<void> {
-  logger.info('[runScan] Starting 100 scans...');
+  logger.info('[runScan] Starting scans...');
   let saved = 0;
 
   for (let i = 0; i < 10; i++) {

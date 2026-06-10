@@ -1,7 +1,7 @@
 services:
   lyos-bot:
     build: .
-    restart: unless-stopped
+    restart: on-failure:5
     env_file: .env
     networks:
       - shared_net

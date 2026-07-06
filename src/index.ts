@@ -46,7 +46,7 @@ async function syncLogs(): Promise<void> {
 async function autoDeposit(): Promise<void> {
   const { user } = await fetchMe();
 
-  if (user.money <= 0) {
+  if (user.money >= 200000) {
     return;
   }
 

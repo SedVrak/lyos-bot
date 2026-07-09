@@ -1,14 +1,17 @@
+version: '3.8'
+
 services:
   lyos-bot:
     build: .
     restart: on-failure
     env_file: .env
     networks:
-      - shared_net
+      - shared-db-net
     tty: true
     volumes:
       - ./logs:/app/logs
 
 networks:
-  shared_net:
-    external: true
+  shared-db-net:
+    external:
+      name: shared-db-net

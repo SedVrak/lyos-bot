@@ -83,9 +83,9 @@ async function main() {
   await initDb();
   logger.info('DB initialized');
 
-  scheduleTask('syncLogs', 2_000, syncLogs);
+  //cheduleTask('syncLogs', 1_000 * 60 * 60 * 6, syncLogs);
   scheduleTask('autoDeposit', randomInterval(20, 40), autoDeposit);
-  scheduleTask('runScan', randomInterval(120, 360), runScan);
+  //scheduleTask('runScan', randomInterval(120, 360), runScan);
 }
 
 main();

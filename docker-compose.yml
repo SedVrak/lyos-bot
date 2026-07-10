@@ -11,5 +11,5 @@ services:
 
 networks:
   shared-db-net:
-    external:
-      name: shared-db-net
+    name: shared-db-net
+    external: true

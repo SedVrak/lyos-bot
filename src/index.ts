@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { deposit, fetchLogs, fetchMe, fetchScanWithRetry } from './api';
+import { cleanLogs, deposit, fetchLogs, fetchMe, fetchScanWithRetry } from './api';
 import { getLastSavedId, saveEntries, initDb, saveDeposit, upsertScanTarget } from './db';
 import { LogEntry, LogsResponse } from './types/logs';
 import { logger } from './utils/logger';
@@ -83,8 +83,9 @@ async function main() {
   await initDb();
   logger.info('DB initialized');
 
-  //cheduleTask('syncLogs', 1_000 * 60 * 60 * 6, syncLogs);
+  scheduleTask('syncLogs', 2_000, syncLogs);
   scheduleTask('autoDeposit', randomInterval(20, 40), autoDeposit);
+  scheduleTask('cleanLogs', 1_000 * 60 * 60 * 12, cleanLogs);
   //scheduleTask('runScan', randomInterval(120, 360), runScan);
 }
 

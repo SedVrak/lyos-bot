@@ -10,6 +10,9 @@ import { logger } from "./utils/logger";
 export async function fetchLogs(): Promise<LogsResponse> {
   return await apiFetch(`api/log`);
 }
+export async function cleanLogs(): Promise<any> {
+  return await apiFetch(`api/log`, {bulkContent: ""}, "PUT");
+}
 //get my info
 export async function fetchMe(): Promise<RootUserObject> {
   return await apiFetch(`api/user/me`);

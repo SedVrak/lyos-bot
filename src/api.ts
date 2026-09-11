@@ -1,5 +1,7 @@
 import { DepositResponce } from "./types/bank";
 import { LogsResponse } from "./types/logs";
+import { DailyQuestsResponse } from "./types/quests";
+import { CreateProcessResponse, ProcessListResponse, ProcessStatus, ProcessType } from "./types/process";
 import { ScanResponse } from "./types/scan";
 import { RootUserObject } from "./types/user";
 import { apiFetch } from "./utils/apiFetch";
@@ -24,6 +26,21 @@ export async function deposit(amount: number): Promise<DepositResponce> {
 //scan
 export async function fetchScan(): Promise<ScanResponse> {
   return await apiFetch(`api/scan`);
+}
+
+//get daily quests
+export async function fetchDailyQuests(): Promise<DailyQuestsResponse> {
+  return await apiFetch(`api/daily-quests`);
+}
+
+//start an attack process (bypass, sabotage, ...) against a scanned target
+export async function createProcess(targetId: string, type: ProcessType = ProcessType.Bypass): Promise<CreateProcessResponse> {
+  return await apiFetch(`api/process/create`, { targetId, type }, 'POST');
+}
+
+//list our own processes (active/completed/failed), newest first
+export async function fetchProcesses(status: ProcessStatus, page = 1, limit = 20): Promise<ProcessListResponse> {
+  return await apiFetch(`api/processes?status=${status}&page=${page}&limit=${limit}&sort=date`);
 }
 
 export async function fetchScanWithRetry(): Promise<ScanResponse> {

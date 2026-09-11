@@ -1,6 +1,8 @@
 import { Pool } from 'pg';
 import { DepositResponce } from './types/bank';
 import { LogEntry } from './types/logs';
+import { ProcessInfo, ProcessListItem } from './types/process';
+import { Quest, QuestStreak } from './types/quests';
 import { ScanTarget } from './types/scan';
 
 const pool = new Pool({
@@ -60,6 +62,61 @@ export async function initDb(): Promise<void> {
       is_bot BOOLEAN DEFAULT FALSE
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_quests (
+      id TEXT PRIMARY KEY,
+      quest_id TEXT,
+      quest_key TEXT,
+      title TEXT,
+      description TEXT,
+      category TEXT,
+      rarity TEXT,
+      current_value INTEGER,
+      target_value INTEGER,
+      progress INTEGER,
+      completed BOOLEAN,
+      claimed BOOLEAN,
+      reward_type TEXT,
+      reward_amount INTEGER,
+      source TEXT,
+      first_seen_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS quest_streak (
+      id SERIAL PRIMARY KEY,
+      current INTEGER,
+      best INTEGER,
+      total_completed INTEGER,
+      next_milestone INTEGER,
+      freezes INTEGER,
+      freeze_days_left INTEGER,
+      lost_streak_value INTEGER,
+      freezes_consumed_on_break INTEGER,
+      recorded_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS attack_log (
+      id SERIAL PRIMARY KEY,
+      process_id TEXT UNIQUE,
+      process_type INTEGER,
+      target_id TEXT,
+      target_login TEXT,
+      target_ip TEXT,
+      ram_cost INTEGER,
+      status TEXT NOT NULL DEFAULT 'in_progress', -- in_progress | success | failed
+      -- raw reward payload from api/processes once resolved (e.g. repBreakdown for a bypass)
+      result_data JSONB,
+      started_at TIMESTAMPTZ DEFAULT NOW(),
+      end_time TIMESTAMPTZ,
+      resolved_at TIMESTAMPTZ
+    )
+  `);
 }
 
 export async function getLastSavedId(): Promise<string | null> {
@@ -115,4 +172,64 @@ export async function upsertScanTarget(t: ScanTarget): Promise<void> {
       scan_count    = scan_targets.scan_count + 1,
       updated_at    = NOW()
   `, [t._id, t.login, t.ip, t.rep, t.firewall, t.money, isBot]);
+}
+
+export async function upsertQuest(q: Quest, source: 'quests' | 'starterQuests'): Promise<void> {
+  await pool.query(`
+    INSERT INTO daily_quests (
+      id, quest_id, quest_key, title, description, category, rarity,
+      current_value, target_value, progress, completed, claimed,
+      reward_type, reward_amount, source
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    ON CONFLICT (id) DO UPDATE SET
+      current_value = EXCLUDED.current_value,
+      target_value  = EXCLUDED.target_value,
+      progress      = EXCLUDED.progress,
+      completed     = EXCLUDED.completed,
+      claimed       = EXCLUDED.claimed,
+      updated_at    = NOW()
+  `, [
+    q._id, q.quest_id, q.quest_key, q.title, q.description, q.category, q.rarity,
+    q.current_value, q.target_value, q.progress, q.completed, q.claimed,
+    q.reward.type, q.reward.amount, source,
+  ]);
+}
+
+export async function saveQuestStreak(streak: QuestStreak): Promise<void> {
+  await pool.query(`
+    INSERT INTO quest_streak (
+      current, best, total_completed, next_milestone,
+      freezes, freeze_days_left, lost_streak_value, freezes_consumed_on_break
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [
+    streak.current, streak.best, streak.total_completed, streak.next_milestone,
+    streak.freezes, streak.freeze_days_left, streak.lost_streak_value, streak.freezes_consumed_on_break,
+  ]);
+}
+
+export async function insertAttack(target: ScanTarget, process: ProcessInfo): Promise<void> {
+  await pool.query(`
+    INSERT INTO attack_log (process_id, process_type, target_id, target_login, target_ip, ram_cost, end_time)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (process_id) DO NOTHING
+  `, [process.id, process.type, target._id, target.login, target.ip, target.bypassRamCost, process.endTime]);
+}
+
+// how many attacks were launched in the trailing 24h, for the daily-cap check
+export async function countAttacksToday(): Promise<number> {
+  const res = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM attack_log WHERE started_at >= NOW() - INTERVAL '24 hours'`
+  );
+  return res.rows[0]?.count ?? 0;
+}
+
+// mark a still-open attack_log row as resolved once api/processes reports it completed.
+// returns false if there was no matching in-progress row (e.g. already resolved).
+export async function resolveAttack(item: ProcessListItem): Promise<boolean> {
+  const res = await pool.query(`
+    UPDATE attack_log
+    SET status = $2, result_data = $3, resolved_at = NOW()
+    WHERE process_id = $1 AND status = 'in_progress'
+  `, [item.id, item.success ? 'success' : 'failed', JSON.stringify(item.data ?? {})]);
+  return (res.rowCount ?? 0) > 0;
 }

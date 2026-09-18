@@ -47,9 +47,9 @@ async function syncLogs(): Promise<void> {
 async function autoDeposit(): Promise<void> {
   const { user } = await fetchMe();
 
-  /*if (user.money <= 200000) {
+  if (user.money <= 20000) {
     return;
-  }*/
+  }
 
   logger.info(`[autoDeposit] Depositing ${user.money}...`);
   const result = await deposit(user.money);
@@ -164,7 +164,7 @@ async function main() {
   logger.info('DB initialized');
 
   scheduleTask('syncLogs', 2_000, syncLogs);
-  scheduleTask('autoDeposit', 5, autoDeposit);
+  scheduleTask('autoDeposit', 30, autoDeposit);
   scheduleTask('cleanLogs', 1_000 * 60 * 60 * 12, cleanLogs);
   scheduleTask('syncQuests', randomInterval(60, 120), syncQuests);
   scheduleTask('runAttacks', 30 * 60_000, runAttacks); // retry cadence for "not enough RAM" per user's spec
